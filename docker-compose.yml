@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: qonto_accounts
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/qonto_accounts?sslmode=disable
+      SERVER_PORT: 8080
+      RETRY_MAX_RETRIES: 5
+      RETRY_BASE_DELAY: 100
+      RETRY_MAX_DELAY: 5000
+      LOG_LEVEL: debug
+      GIN_MODE: debug
+    ports:
+      - "8080:8080"
+    command: >
+      sh -c "
+        while ! nc -z db 5432; do
+          echo 'Waiting for database to be ready...'
+          sleep 2
+        done
+        ./moneytransfer rest"
+
+volumes:
+  postgres_data:

@@ -1,0 +1,76 @@
+basePath: /api/v1
+definitions:
+  rest.BulkTransferResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  rest.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a money transfer service API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Money Transfer API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint is used to check the health of the server
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+      summary: Health check endpoint
+      tags:
+      - health
+  /transfers:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Transfer money from one account to multiple accounts using a file
+        upload
+      parameters:
+      - description: JSON file containing bulk transfer details
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/rest.BulkTransferResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/rest.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/rest.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/rest.ErrorResponse'
+      summary: Perform a bulk transfer
+      tags:
+      - transfers
+swagger: "2.0"

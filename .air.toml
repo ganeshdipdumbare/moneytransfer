@@ -1,0 +1,15 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/moneytransfer ."
+  bin = "./tmp/moneytransfer"
+  delay = 1000
+  exclude_dir = ["assets", "tmp", "vendor"]
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  exclude_regex = ["_test\\.go"]
+  log = "air_build.log"
+
+[run]
+  cmd = "./tmp/moneytransfer"
+  output = "air_run.log"
