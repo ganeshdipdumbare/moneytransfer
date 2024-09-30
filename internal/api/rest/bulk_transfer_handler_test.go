@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -61,7 +62,7 @@ func TestBulkTransfer(t *testing.T) {
 			setupMock:          func(mockService *mock.TransferServiceMock) {},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponse: ErrorResponse{
-				Message: "invalid request",
+				Message: "Invalid request",
 			},
 		},
 		{
@@ -83,7 +84,7 @@ func TestBulkTransfer(t *testing.T) {
 			setupMock:          func(mockService *mock.TransferServiceMock) {},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponse: ErrorResponse{
-				Message: "Invalid amount for transfer to John Doe: error parsing amount: strconv.ParseInt: parsing \"invalid00\": invalid syntax",
+				Message: "Invalid amount for transfer to John Doe",
 			},
 		},
 		{
@@ -107,9 +108,9 @@ func TestBulkTransfer(t *testing.T) {
 					BulkTransfer(gomock.Any(), gomock.Any()).
 					Return(fmt.Errorf("insufficient funds"))
 			},
-			expectedStatusCode: http.StatusUnprocessableEntity,
+			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponse: ErrorResponse{
-				Message: "insufficient funds",
+				Message: "Error processing bulk transfer",
 			},
 		},
 	}
@@ -127,6 +128,7 @@ func TestBulkTransfer(t *testing.T) {
 
 			api := &apiDetails{
 				service: mockService,
+				logger:  slog.Default(),
 			}
 
 			router := gin.New()

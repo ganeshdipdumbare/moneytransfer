@@ -85,7 +85,7 @@ func NewApi(logger *slog.Logger, a service.TransferService, port string) (RestAp
 func (a *apiDetails) StartServer() {
 	go func() {
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			a.logger.Error("listen: %s\n", err)
+			a.logger.Error("listen error", slog.String("error", err.Error()))
 		}
 	}()
 
@@ -102,7 +102,7 @@ func (a *apiDetails) GracefulStopServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {
-		a.logger.Error("Server forced to shutdown:", err)
+		a.logger.Error("Server forced to shutdown", slog.String("error", err.Error()))
 	}
 	a.logger.Info("Server exiting")
 }
