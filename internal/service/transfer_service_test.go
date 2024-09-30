@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
-
 	"moneytransfer/internal/account"
 	"moneytransfer/internal/service"
 	"moneytransfer/internal/transfer"
 	"moneytransfer/mock"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 // MockDB is a mock of sql.DB
