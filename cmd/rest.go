@@ -59,7 +59,7 @@ It sets up the necessary routes and listens for incoming HTTP requests.`,
 		accountRepo := account.NewPostgresRepository(db)
 		transferRepo := transfer.NewPostgresRepository(db)
 
-		// Create account and transaction services
+		// Create transfer service with retry config
 		retryConfig := service.RetryConfig{
 			BaseDelay:  config.RetryConfig.BaseDelay,
 			MaxDelay:   config.RetryConfig.MaxDelay,
@@ -68,7 +68,7 @@ It sets up the necessary routes and listens for incoming HTTP requests.`,
 		transferService := service.NewTransferService(db, logger, accountRepo, transferRepo, retryConfig)
 
 		// create a new rest api instance
-		api, err := rest.NewApi(transferService, config.ServerPort)
+		api, err := rest.NewApi(logger, transferService, config.ServerPort)
 		if err != nil {
 			logger.Error("failed to create new rest api", slog.Any("error", err))
 			os.Exit(1)

@@ -3,7 +3,7 @@ package rest
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,10 +46,15 @@ type RestApi interface {
 type apiDetails struct {
 	service service.TransferService
 	server  *http.Server
+	logger  *slog.Logger
 }
 
 // NewApi creates new api instance, otherwise returns error
-func NewApi(a service.TransferService, port string) (RestApi, error) {
+func NewApi(logger *slog.Logger, a service.TransferService, port string) (RestApi, error) {
+	if logger == nil {
+		return nil, fmt.Errorf(nilArgErr, "logger")
+	}
+
 	if a == nil {
 		return nil, fmt.Errorf(nilArgErr, "app")
 	}
@@ -60,6 +65,7 @@ func NewApi(a service.TransferService, port string) (RestApi, error) {
 
 	api := &apiDetails{
 		service: a,
+		logger:  logger,
 	}
 
 	router := api.setupRouter()
@@ -79,7 +85,7 @@ func NewApi(a service.TransferService, port string) (RestApi, error) {
 func (a *apiDetails) StartServer() {
 	go func() {
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+			a.logger.Error("listen: %s\n", err)
 		}
 	}()
 
@@ -87,7 +93,7 @@ func (a *apiDetails) StartServer() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	a.logger.Info("Shutting down server...")
 	a.GracefulStopServer()
 }
 
@@ -96,7 +102,7 @@ func (a *apiDetails) GracefulStopServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		a.logger.Error("Server forced to shutdown:", err)
 	}
-	log.Println("Server exiting")
+	a.logger.Info("Server exiting")
 }

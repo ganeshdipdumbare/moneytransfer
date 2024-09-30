@@ -2,8 +2,9 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -49,15 +50,20 @@ type CreditTransfer struct {
 // @Failure 500 {object} ErrorResponse
 // @Router /transfers [post]
 func (api *apiDetails) BulkTransfer(c *gin.Context) {
+	logger := api.logger.With("handler", "BulkTransfer")
+	logger.Info("Starting bulk transfer process")
+
 	file, _, err := c.Request.FormFile("file")
 	if err != nil {
+		logger.Error("Failed to retrieve file from request", "error", err)
 		createErrorResponse(c, http.StatusBadRequest, "Error retrieving the file")
 		return
 	}
 	defer file.Close()
 
-	fileContent, err := ioutil.ReadAll(file)
+	fileContent, err := io.ReadAll(file)
 	if err != nil {
+		logger.Error("Failed to read file content", "error", err)
 		createErrorResponse(c, http.StatusBadRequest, "Error reading file content")
 		return
 	}
@@ -65,15 +71,20 @@ func (api *apiDetails) BulkTransfer(c *gin.Context) {
 	var bulkTransferContent BulkTransferFileContent
 	err = json.Unmarshal(fileContent, &bulkTransferContent)
 	if err != nil {
+		logger.Error("Failed to parse JSON content", "error", err)
 		createErrorResponse(c, http.StatusBadRequest, "Error parsing JSON content")
 		return
 	}
 
-	// Validate the bulk transfer content using the validator
 	if err := validate.Struct(bulkTransferContent); err != nil {
-		createErrorResponse(c, http.StatusBadRequest, "invalid request")
+		logger.Error("Invalid bulk transfer request structure", "error", err)
+		createErrorResponse(c, http.StatusBadRequest, "Invalid request")
 		return
 	}
+
+	logger.Info("Processing bulk transfer request",
+		"organization", bulkTransferContent.OrganizationName,
+		"transferCount", len(bulkTransferContent.CreditTransfers))
 
 	// Convert BulkTransferFileContent to service.BulkTransferRequest
 	request := service.BulkTransferRequest{
@@ -86,7 +97,11 @@ func (api *apiDetails) BulkTransfer(c *gin.Context) {
 	for i, ct := range bulkTransferContent.CreditTransfers {
 		amount, err := parseAmount(ct.Amount)
 		if err != nil {
-			createErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("Invalid amount for transfer to %s: %v", ct.CounterpartyName, err))
+			logger.Error("Invalid amount for transfer",
+				"error", err,
+				"counterparty", ct.CounterpartyName,
+				"amount", ct.Amount)
+			createErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("Invalid amount for transfer to %s", ct.CounterpartyName))
 			return
 		}
 		request.Transfers[i] = transfer.Transfer{
@@ -100,14 +115,23 @@ func (api *apiDetails) BulkTransfer(c *gin.Context) {
 
 	err = api.service.BulkTransfer(c.Request.Context(), request)
 	if err != nil {
-		if err.Error() == "insufficient funds" {
+		if errors.Is(err, service.ErrInsufficientFunds) {
+			logger.Warn("Insufficient funds for bulk transfer",
+				"error", err,
+				"organization", bulkTransferContent.OrganizationName)
 			createErrorResponse(c, http.StatusUnprocessableEntity, err.Error())
 		} else {
+			logger.Error("Failed to process bulk transfer",
+				"error", err,
+				"organization", bulkTransferContent.OrganizationName)
 			createErrorResponse(c, http.StatusInternalServerError, "Error processing bulk transfer")
 		}
 		return
 	}
 
+	logger.Info("Bulk transfer processed successfully",
+		"organization", bulkTransferContent.OrganizationName,
+		"transferCount", len(bulkTransferContent.CreditTransfers))
 	c.JSON(http.StatusCreated, BulkTransferResponse{
 		Message: "Bulk transfer processed successfully",
 	})
