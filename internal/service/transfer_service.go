@@ -15,10 +15,10 @@ import (
 )
 
 type BulkTransferRequest struct {
-	OrganizationName string              `json:"organization_name"`
-	OrganizationBIC  string              `json:"organization_bic"`
-	OrganizationIBAN string              `json:"organization_iban"`
-	Transfers        []transfer.Transfer `json:"transfers"`
+	OrganizationName string
+	OrganizationBIC  string
+	OrganizationIBAN string
+	Transfers        []transfer.Transfer
 }
 
 //go:generate go run go.uber.org/mock/mockgen -source=transfer_service.go -destination=../../mock/service_mock.go -package=mock -mock_names=TransferService=TransferServiceMock
