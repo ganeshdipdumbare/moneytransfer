@@ -14,6 +14,8 @@ import (
 	"moneytransfer/internal/transfer"
 )
 
+var ErrInsufficientFunds = errors.New("insufficient funds")
+
 type BulkTransferRequest struct {
 	OrganizationName string
 	OrganizationBIC  string
@@ -116,7 +118,7 @@ func (s *transferService) executeBulkTransfer(ctx context.Context, req BulkTrans
 
 	if account.BalanceCents < totalTransfer {
 		s.logger.Warn("Insufficient funds", "required", totalTransfer, "available", account.BalanceCents)
-		return errors.New("insufficient funds")
+		return ErrInsufficientFunds
 	}
 
 	transfersList := make([]transfer.Transfer, len(req.Transfers))

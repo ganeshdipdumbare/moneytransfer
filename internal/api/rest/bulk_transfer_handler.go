@@ -2,8 +2,9 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -60,7 +61,7 @@ func (api *apiDetails) BulkTransfer(c *gin.Context) {
 	}
 	defer file.Close()
 
-	fileContent, err := ioutil.ReadAll(file)
+	fileContent, err := io.ReadAll(file)
 	if err != nil {
 		logger.Error("Failed to read file content", "error", err)
 		createErrorResponse(c, http.StatusBadRequest, "Error reading file content")
@@ -100,7 +101,7 @@ func (api *apiDetails) BulkTransfer(c *gin.Context) {
 				"error", err,
 				"counterparty", ct.CounterpartyName,
 				"amount", ct.Amount)
-			createErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("Invalid amount for transfer to %s: %v", ct.CounterpartyName, err))
+			createErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("Invalid amount for transfer to %s", ct.CounterpartyName))
 			return
 		}
 		request.Transfers[i] = transfer.Transfer{
@@ -114,7 +115,7 @@ func (api *apiDetails) BulkTransfer(c *gin.Context) {
 
 	err = api.service.BulkTransfer(c.Request.Context(), request)
 	if err != nil {
-		if err.Error() == "insufficient funds" {
+		if errors.Is(err, service.ErrInsufficientFunds) {
 			logger.Warn("Insufficient funds for bulk transfer",
 				"error", err,
 				"organization", bulkTransferContent.OrganizationName)
