@@ -19,7 +19,7 @@ The project follows a clean architecture pattern, separating concerns into diffe
 - `cmd`: Contains the main application entry points. Note that we can implement CLI tool for the service easily. 
 - `internal/api/rest`: Implements the REST API handlers and router, This is presentation layer where other servers can be implemented(eg. gRPC or graphQL)
 - `internal/service`: Contains the business logic for transfer processing
-- `internal/transfer and internal/account`: Domains defined using repository patter
+- `internal/transfer and internal/account`: Domains defined using repository pattern
 - `config`: Handles application configuration
 - `Makefile`: Provides convenient commands for building and running the application
 
