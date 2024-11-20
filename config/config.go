@@ -1,24 +1,43 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
 type RetryConfig struct {
-	BaseDelay  time.Duration
-	MaxDelay   time.Duration
-	MaxRetries int
+	BaseDelay  time.Duration `validate:"required,gt=0"`
+	MaxDelay   time.Duration `validate:"required,gtefield=BaseDelay"`
+	MaxRetries int           `validate:"gte=0"`
 }
 
 type Config struct {
-	DatabaseURL string
-	ServerPort  string
+	DatabaseURL string `validate:"required,url"`
+	ServerPort  string `validate:"required"`
 	LogLevel    slog.Level
-	GinMode     string
-	RetryConfig RetryConfig
+	GinMode     string      `validate:"required,oneof=debug release test"`
+	RetryConfig RetryConfig `validate:"required"`
+}
+
+func (c *Config) Validate() error {
+	validate := validator.New()
+
+	// Register custom validation for time.Duration comparison
+	validate.RegisterStructValidation(func(sl validator.StructLevel) {
+		rc := sl.Current().Interface().(RetryConfig)
+		if rc.MaxDelay < rc.BaseDelay {
+			sl.ReportError(rc.MaxDelay, "MaxDelay", "MaxDelay", "gtefield", "BaseDelay")
+		}
+	}, RetryConfig{})
+
+	if err := validate.Struct(c); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
+	return nil
 }
 
 func LoadConfig() (*Config, error) {
@@ -36,14 +55,28 @@ func LoadConfig() (*Config, error) {
 	// Tell Viper to automatically override values from environment variables
 	v.AutomaticEnv()
 
-	// Optional: If you want to keep your existing env var names
-	v.BindEnv("database_url", "DATABASE_URL")
-	v.BindEnv("server_port", "SERVER_PORT")
-	v.BindEnv("log_level", "LOG_LEVEL")
-	v.BindEnv("gin_mode", "GIN_MODE")
-	v.BindEnv("retry.base_delay", "RETRY_BASE_DELAY")
-	v.BindEnv("retry.max_delay", "RETRY_MAX_DELAY")
-	v.BindEnv("retry.max_retries", "RETRY_MAX_RETRIES")
+	// Handle BindEnv errors
+	if err := v.BindEnv("database_url", "DATABASE_URL"); err != nil {
+		return nil, err
+	}
+	if err := v.BindEnv("server_port", "SERVER_PORT"); err != nil {
+		return nil, err
+	}
+	if err := v.BindEnv("log_level", "LOG_LEVEL"); err != nil {
+		return nil, err
+	}
+	if err := v.BindEnv("gin_mode", "GIN_MODE"); err != nil {
+		return nil, err
+	}
+	if err := v.BindEnv("retry.base_delay", "RETRY_BASE_DELAY"); err != nil {
+		return nil, err
+	}
+	if err := v.BindEnv("retry.max_delay", "RETRY_MAX_DELAY"); err != nil {
+		return nil, err
+	}
+	if err := v.BindEnv("retry.max_retries", "RETRY_MAX_RETRIES"); err != nil {
+		return nil, err
+	}
 
 	config := &Config{
 		DatabaseURL: v.GetString("database_url"),
@@ -55,6 +88,10 @@ func LoadConfig() (*Config, error) {
 			MaxDelay:   time.Duration(v.GetInt("retry.max_delay")) * time.Millisecond,
 			MaxRetries: v.GetInt("retry.max_retries"),
 		},
+	}
+
+	if err := config.Validate(); err != nil {
+		return nil, err
 	}
 
 	return config, nil
