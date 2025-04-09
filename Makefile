@@ -6,6 +6,7 @@ generate-mock:
 
 # Generate swagger docs
 swagger:
+	go install github.com/swaggo/swag/cmd/swag@latest
 	swag init -g cmd/rest.go
 
 # Build the application, run swagger before build
