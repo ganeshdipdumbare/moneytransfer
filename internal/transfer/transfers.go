@@ -2,6 +2,8 @@ package transfer
 
 import (
 	"errors"
+	"math/rand"
+	"time"
 )
 
 type Transfer struct {
@@ -17,7 +19,13 @@ type Transfer struct {
 }
 
 func NewTransfer(counterpartyName, counterpartyIBAN, counterpartyBIC string, amountCents, bankAccountID int64, description string) *Transfer {
+	// Generate a simple unique ID based on timestamp and random number
+	// In a real application, you might want to use a more robust ID generation method
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randomID := r.Int63n(1000000) + 1 // Ensure ID is not zero
+
 	return &Transfer{
+		ID:               randomID,
 		CounterpartyName: counterpartyName,
 		CounterpartyIBAN: counterpartyIBAN,
 		CounterpartyBIC:  counterpartyBIC,
