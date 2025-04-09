@@ -2,6 +2,8 @@ package account
 
 import (
 	"errors"
+	"math/rand"
+	"time"
 )
 
 type BankAccount struct {
@@ -15,7 +17,13 @@ type BankAccount struct {
 }
 
 func NewBankAccount(organizationName string, balanceCents int64, iban string, bic string) *BankAccount {
+	// Generate a simple unique ID based on timestamp and random number
+	// In a real application, you might want to use a more robust ID generation method
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randomID := r.Int63n(1000000) + 1 // Ensure ID is not zero
+
 	return &BankAccount{
+		ID:               randomID,
 		OrganizationName: organizationName,
 		BalanceCents:     balanceCents,
 		IBAN:             iban,
